@@ -2,25 +2,24 @@
     <head>
         <meta charset="UTF-8">
         <script src="/index.js" defer></script>
-        <script src="localise.js" defer></script>
         <title>Url Shortener</title>
     </head>
     <body>
-        <h1 class="loc" id="loc-name"></h1>
-        <h4 class="loc" id="loc-rate-limits"></h4>
+        <h1>%key=%loc-name%</h1>
+        <h4>%key=%loc-rate-limits%</h4>
         <div class="form-group">
-            <input class="form-field loc-inj-placeholder loc" id="url-input loc-long-url-box-p" type="text" placeholder="Enter long url address">
+            <input class="form-field" id="url-input" type="text" placeholder="%key=%loc-long-url-box-p%">
         </div>
         <div class="form-group">
             <span class="location-origin-text"></span>
-            <input class="form-field loc-inj-placeholder loc" id="surl-input loc-long-surl-box-p" type="text" placeholder="Leave empty to get random link">
+            <input class="form-field" id="surl-input" type="text" placeholder="%key=%loc-long-surl-box-p%">
         </div>
         <div class="form-group">
-            <button class="form-btn loc" id="loc-shorten-button" onclick="do_shorten()">Shorten!</button>
+            <button class="form-btn" onclick="do_shorten()">%key=%loc-shorten-button%</button>
         </div>
         <div class="form-group">
             <span id="shorten-result-bar"></span>
-            <input class="form-field loc-inj-placeholder loc" id="surl-output loc-long-surl-out-box-p" type="text" placeholder="Shortened url" readonly>
+            <input class="form-field" id="surl-output" type="text" placeholder="%key=%loc-long-surl-out-box-p%" readonly>
         </div>
 
         <link rel="stylesheet" href="index.css"></body>

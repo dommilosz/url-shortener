@@ -13,24 +13,23 @@ const port = 8004
 app.use(json({limit: '50mb'}));
 
 const limiter = rateLimit({
-    windowMs: 5 * 60 * 1000, // 1 minutes
-    max: 30, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    windowMs: config.rateLimiter.window * 1000, // 1 minutes
+    max: config.rateLimiter.amount, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
+config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%1", config.rateLimiter.amount);
+config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%2", config.rateLimiter.window/60 + " minutes");
+
 app.use('/shorten', limiter)
 
 app.get('/', (req: Request, res: Response) => {
-    sendFile(req, res, "src/index.html", 200);
+    sendFile(req, res, "src/index.html", 200,config.localization);
 })
 
 app.get('/index.js', (req: Request, res: Response) => {
     sendFile(req, res, "src/front_index.js", 200);
-})
-
-app.get('/localise.js', (req: Request, res: Response) => {
-    sendFile(req, res, "src/localise.js", 200,{config});
 })
 
 app.get('/index.css', (req: Request, res: Response) => {
@@ -51,6 +50,9 @@ app.post('/shorten', async (req: Request, res: Response) => {
     }
     if(urlShort.length > max_surl_length){
         return sendCompletion(res, `Short Url too long (max ${max_surl_length})`, true, 400);
+    }
+    if(urlShort.length < 2){
+        return sendCompletion(res, `Short Url too short (min 2)`, true, 400);
     }
 
     if (!valid_http_regex.test(url)) {
@@ -84,7 +86,7 @@ app.get('/:shortUrl', async (req: Request, res: Response) => {
         let data = snapshot.val();
         res.redirect(data.url);
     }else{
-        sendFile(req, res, "src/not-found.html", 404);
+        sendFile(req, res, "src/not-found.html", 404,config.localization);
     }
 })
 
