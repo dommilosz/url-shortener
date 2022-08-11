@@ -1,4 +1,3 @@
 /node_modules/
 .idea/
 /pnpm-lock.yaml
-/firebase-secrets.json

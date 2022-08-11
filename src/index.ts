@@ -2,6 +2,7 @@ import express, {json, Request, Response} from 'express'
 import {sendCompletion, sendFile, sendText} from './wsutils';
 import {realtime_db} from "./firebase";
 import rateLimit from 'express-rate-limit'
+let config = require("../config.json");
 
 let max_url_length = 128;
 let max_surl_length = 128;
@@ -26,6 +27,10 @@ app.get('/', (req: Request, res: Response) => {
 
 app.get('/index.js', (req: Request, res: Response) => {
     sendFile(req, res, "src/front_index.js", 200);
+})
+
+app.get('/localise.js', (req: Request, res: Response) => {
+    sendFile(req, res, "src/localise.js", 200,{config});
 })
 
 app.get('/index.css', (req: Request, res: Response) => {
