@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <script src="/index.js" defer></script>
+        <title>Url Shortener</title>
+    </head>
+    <body>
+        <h1>Url Shortener</h1>
+        <h4>Rate limits apply: 30 shortens in 5 minutes</h4>
+        <div class="form-group">
+            <input class="form-field" id="url-input" type="text" placeholder="Enter long url address">
+        </div>
+        <div class="form-group">
+            <span class="location-origin-text"></span>
+            <input class="form-field" id="surl-input" type="text" placeholder="Leave empty to get random link">
+        </div>
+        <div class="form-group">
+            <button class="form-btn" onclick="do_shorten()">Shorten!</button>
+        </div>
+        <div class="form-group">
+            <span id="shorten-result-bar"></span>
+            <input class="form-field" id="surl-output" type="text" placeholder="Shortened url" readonly>
+        </div>
+
+        <link rel="stylesheet" href="index.css"></body>
+</html>
