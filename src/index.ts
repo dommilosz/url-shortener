@@ -51,15 +51,15 @@ app.post('/shorten', async (req: Request, res: Response) => {
     if(urlShort.length > max_surl_length){
         return sendCompletion(res, `Short Url too long (max ${max_surl_length})`, true, 400);
     }
-    if(urlShort.length < 2){
-        return sendCompletion(res, `Short Url too short (min 2)`, true, 400);
-    }
 
     if (!valid_http_regex.test(url)) {
         return sendCompletion(res, "Url is invalid", true, 400);
     }
     if (!urlShort) {
         urlShort = 'A'+makeid(7);
+    }
+    if(urlShort.length < 2){
+        return sendCompletion(res, `Short Url too short (min 2)`, true, 400);
     }
 
     let custom = isCustom(urlShort);
