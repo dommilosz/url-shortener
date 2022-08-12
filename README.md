@@ -15,6 +15,7 @@ Create config.json (copy example config.json) and firebase-secrets.json (firebas
     "window": "300",
     "amount": "30"
   },
+  "port": 8008,
   "localization": {
     "loc-name": "URL Shortener",
     "loc-rate-limits": "Rate limits apply: %1 shortens in %2 minutes",

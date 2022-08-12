@@ -9,7 +9,7 @@ let max_surl_length = 128;
 let valid_http_regex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/;
 
 const app = express()
-const port = 8004
+const port = config.port
 app.use(json({limit: '50mb'}));
 
 const limiter = rateLimit({
