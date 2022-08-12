@@ -8,7 +8,11 @@ export function sendFile(req, res, path: PathLike, status: number, args = {}) {
     let content = fs.readFileSync(path, {encoding: 'utf-8'});
 
     Object.keys(args).forEach(key => {
-        content = replaceAll(content, `%key=%${key}%`, args[key])
+        if(typeof(args[key]) === 'string'){
+            content = replaceAll(content, `%key=%${key}%`, args[key])
+        }else{
+            content = replaceAll(content, `"%key=%${key}%"`, `JSON.parse(atob("${btoa(JSON.stringify(args[key]))}"))`)
+        }
     })
     res.setHeader("Content-Type", type)
     res.writeHead(status)

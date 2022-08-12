@@ -1,20 +1,28 @@
-let max_url_length = 128;
-let max_surl_length = 128;
-let valid_http_regex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/;
+let config = "%key=%config%";
+
+function validateUrlAndSurl(url, urlShort){
+    if (!url) {
+        return {text:"Url not provided",error:true};
+    }
+    if (url.length > config.validation.maxUrlLength) {
+        return {text:`Url too long (max ${config.validation.maxUrlLength})`,error:true};
+    }
+    if (urlShort.length > config.validation.maxShortUrlLength) {
+        return {text:`Short Url too long (max ${config.validation.maxShortUrlLength})`,error:true};
+    }
+    let valid_http_regex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/;
+    if (!valid_http_regex.test(url)) {
+        return {text:"Url is invalid",error:true};
+    }
+    if (urlShort && urlShort.length < config.validation.minShortUrlLength) {
+        return {text: `Short Url too short (min ${config.validation.minShortUrlLength})`, error: true};
+    }
+    return {text:"",error:false};
+}
 
 async function shorten(url,urlShort){
-    if(!url){
-        return {error:true,text:"Url not provided"};
-    }
-    if(!valid_http_regex.test(url)){
-        return {error:true,text:"Url is invalid"};
-    }
-    if(url.length > max_url_length){
-        return {error:true,text:"Url too long (max 256)"};
-    }
-    if(urlShort.length > max_surl_length){
-        return {error:true,text:"urlShort too long (max 128)"};
-    }
+    let validationResult = validateUrlAndSurl(url,urlShort);
+    if(validationResult.error) return validationResult;
 
     let res = await fetch('/shorten', {
         method: 'POST',

@@ -10,6 +10,13 @@ type configType = {
         "window": number,
         "amount": number
     },
+    "validation":{
+        randomShortUrlLength: number,
+        randomRetries:number,
+        maxUrlLength:number,
+        maxShortUrlLength:number,
+        minShortUrlLength:number
+    },
     "port": number,
     "localization": {
         "loc-name": string,
@@ -24,7 +31,14 @@ type configType = {
     }
 }
 
-let default_config:configType = {
+let default_config: configType = {
+    validation: {
+        maxShortUrlLength: 128,
+        maxUrlLength: 128,
+        minShortUrlLength: 2,
+        randomRetries: 5,
+        randomShortUrlLength: 8
+    },
     "databaseURL": "https://example.firebaseio.com",
     "rateLimiter": {
         "window": 300,
@@ -44,24 +58,22 @@ let default_config:configType = {
     }
 }
 
-let config:configType = default_config;
-if(fs.existsSync("./config.json")){
-    config = JSON.parse(fs.readFileSync("./config.json",{encoding:"utf-8"}));
-}else{
+let config: configType = default_config;
+if (fs.existsSync("./config.json")) {
+    config = JSON.parse(fs.readFileSync("./config.json", {encoding: "utf-8"}));
+} else {
     console.error("config.json not found. Writing example one");
-    fs.writeFileSync("./config.json",JSON.stringify(default_config),{encoding:"utf-8"});
+    fs.writeFileSync("./config.json", JSON.stringify(default_config,null, 2), {encoding: "utf-8"});
     process.exit(0);
 }
 
-Object.keys(default_config).forEach(configKey=>{
-    if(config[configKey] === undefined){
+Object.keys(default_config).forEach(configKey => {
+    if (config[configKey] === undefined) {
         config[configKey] = default_config[configKey];
     }
 })
 
-let max_url_length = 128;
-let max_surl_length = 128;
-let valid_http_regex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/;
+fs.writeFileSync("./config.json", JSON.stringify(config,null,2), {encoding: "utf-8"});
 
 const app = express()
 const port = config.port
@@ -75,16 +87,16 @@ const limiter = rateLimit({
 })
 
 config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%1", String(config.rateLimiter.amount));
-config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%2", config.rateLimiter.window/60 + " minutes");
+config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%2", config.rateLimiter.window / 60 + " minutes");
 
 app.use('/shorten', limiter)
 
 app.get('/', (req: Request, res: Response) => {
-    sendFile(req, res, "src/index.html", 200,config.localization);
+    sendFile(req, res, "src/index.html", 200, config.localization);
 })
 
 app.get('/index.js', (req: Request, res: Response) => {
-    sendFile(req, res, "src/front_index.js", 200);
+    sendFile(req, res, "src/front_index.js", 200,{config});
 })
 
 app.get('/index.css', (req: Request, res: Response) => {
@@ -95,53 +107,25 @@ app.post('/shorten', async (req: Request, res: Response) => {
     let body = req.body;
     let url = body?.url;
     let urlShort = body?.urlShort;
+    let result = await shorten(url, urlShort);
 
-    if (!url) {
-        return sendCompletion(res, "Url not provided", true, 400);
-    }
-
-    if(url.length > max_url_length){
-        return sendCompletion(res, `Url too long (max ${max_url_length})`, true, 400);
-    }
-    if(urlShort.length > max_surl_length){
-        return sendCompletion(res, `Short Url too long (max ${max_surl_length})`, true, 400);
-    }
-
-    if (!valid_http_regex.test(url)) {
-        return sendCompletion(res, "Url is invalid", true, 400);
-    }
-    if (!urlShort) {
-        urlShort = 'A'+makeid(7);
-    }
-    if(urlShort.length < 2){
-        return sendCompletion(res, `Short Url too short (min 2)`, true, 400);
-    }
-
-    let custom = isCustom(urlShort);
-
-    let ref = realtime_db.ref(`urls/${custom?"c":"r"}/${urlShort}`);
-    let snapshot = await ref.once('value');
-    if (snapshot.exists()) {
-        return sendCompletion(res, "Url taken", true, 400);
-    }
-    await ref.set({url});
-    return sendCompletion(res, urlShort, false, 200);
+    return sendCompletion(res, result.text, result.error, 200);
 })
 
 app.get('/favicon.ico', (req: Request, res: Response) => {
-  sendText(res,"",404);
+    sendText(res, "", 404);
 })
 
 app.get('/:shortUrl', async (req: Request, res: Response) => {
     let params = req.params;
     let custom = isCustom(params.shortUrl)
-    let ref = realtime_db.ref(`urls/${custom?"c":"r"}/${params.shortUrl}`);
+    let ref = realtime_db.ref(`urls/${custom ? "c" : "r"}/${params.shortUrl}`);
     let snapshot = await ref.once('value');
     if (snapshot.exists()) {
         let data = snapshot.val();
         res.redirect(data.url);
-    }else{
-        sendFile(req, res, "src/not-found.html", 404,config.localization);
+    } else {
+        sendFile(req, res, "src/not-found.html", 404, config.localization);
     }
 })
 
@@ -160,6 +144,52 @@ function makeid(length) {
     return result;
 }
 
-function isCustom(url:string){
+function isCustom(url: string) {
     return !(/^A[a-zA-Z0-9]{7}$/.test(url));
+}
+
+async function shorten(url, urlShort, retriesLeft = config.validation.randomRetries) {
+    if (!urlShort) {
+        urlShort = 'A' + makeid(config.validation.randomShortUrlLength-1);
+    }
+    let validationResult = validateUrlAndSurl(url,urlShort);
+    if(validationResult.error){
+        return validationResult;
+    }
+    let custom = isCustom(urlShort);
+
+    let ref = realtime_db.ref(`urls/${custom ? "c" : "r"}/${urlShort}`);
+    let snapshot = await ref.once('value');
+    if (snapshot.exists()) {
+        if (custom) {
+            if(retriesLeft < 1){
+                return {text: "Free url not found!", error: true};
+            }
+            return await shorten(url,"",retriesLeft-1);
+        } else {
+            return {text: "Url taken!", error: true};
+        }
+    }
+    await ref.set({url});
+    return {text: urlShort, error: false};
+}
+
+function validateUrlAndSurl(url, urlShort){
+    if (!url) {
+        return {text:"Url not provided",error:true};
+    }
+    if (url.length > config.validation.maxUrlLength) {
+        return {text:`Url too long (max ${config.validation.maxUrlLength})`,error:true};
+    }
+    if (urlShort.length > config.validation.maxShortUrlLength) {
+        return {text:`Short Url too long (max ${config.validation.maxShortUrlLength})`,error:true};
+    }
+    let valid_http_regex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/;
+    if (!valid_http_regex.test(url)) {
+        return {text:"Url is invalid",error:true};
+    }
+    if (urlShort && urlShort.length < config.validation.minShortUrlLength) {
+        return {text: `Short Url too short (min ${config.validation.minShortUrlLength})`, error: true};
+    }
+    return {text:"",error:false};
 }
