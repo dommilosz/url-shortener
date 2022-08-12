@@ -144,8 +144,9 @@ function makeid(length) {
     return result;
 }
 
+let customRegex = new RegExp(`^A[a-zA-Z0-9]{${config.validation.randomShortUrlLength-1}}$`)
 function isCustom(url: string) {
-    return !(/^A[a-zA-Z0-9]{7}$/.test(url));
+    return !customRegex.test(url);
 }
 
 async function shorten(url, urlShort, retriesLeft = config.validation.randomRetries) {
