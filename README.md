@@ -5,15 +5,16 @@
 
 ### Configuration
 
-Create config.json (copy example config.json) and firebase-secrets.json (firebase service account) in project root directory. In config.json change databaseURL to your rtdb url.
+put firebase-secrets.json (firebase service account) in project root directory. 
+Run the shortener and let it generate config.json. Change databaseURL to your rtdb url.
 
 ### Example config.json
 ```
 {
   "databaseURL": "https://example.firebaseio.com",
   "rateLimiter": {
-    "window": "300",
-    "amount": "30"
+    "window": 300,
+    "amount": 30
   },
   "port": 8008,
   "localization": {

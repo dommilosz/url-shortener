@@ -3,3 +3,4 @@
 /pnpm-lock.yaml
 /firebase-secrets.json
 /config.json
+/dist/

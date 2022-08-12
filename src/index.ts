@@ -2,7 +2,62 @@ import express, {json, Request, Response} from 'express'
 import {sendCompletion, sendFile, sendText} from './wsutils';
 import {realtime_db} from "./firebase";
 import rateLimit from 'express-rate-limit'
-let config = require("../config.json");
+import fs from 'fs';
+
+type configType = {
+    "databaseURL": string,
+    "rateLimiter": {
+        "window": number,
+        "amount": number
+    },
+    "port": number,
+    "localization": {
+        "loc-name": string,
+        "loc-rate-limits": string,
+        "loc-long-url-box-p": string,
+        "loc-long-surl-box-p": string,
+        "loc-shorten-button": string,
+        "loc-long-surl-out-box-p": string,
+        "loc-404-error": string,
+        "loc-404-h2": string,
+        "loc-404-shorten-first": string
+    }
+}
+
+let default_config:configType = {
+    "databaseURL": "https://example.firebaseio.com",
+    "rateLimiter": {
+        "window": 300,
+        "amount": 30
+    },
+    "port": 8008,
+    "localization": {
+        "loc-name": "URL Shortener",
+        "loc-rate-limits": "Rate limits apply: %1 shortens in %2 minutes",
+        "loc-long-url-box-p": "Enter long url address",
+        "loc-long-surl-box-p": "Leave empty to get random link",
+        "loc-shorten-button": "Shorten!",
+        "loc-long-surl-out-box-p": "There will be a shortened url",
+        "loc-404-error": "404 Not Found",
+        "loc-404-h2": "Nobody have ever shortened this",
+        "loc-404-shorten-first": "Be first to shorten!"
+    }
+}
+
+let config:configType = default_config;
+if(fs.existsSync("./config.json")){
+    config = JSON.parse(fs.readFileSync("./config.json",{encoding:"utf-8"}));
+}else{
+    console.error("config.json not found. Writing example one");
+    fs.writeFileSync("./config.json",JSON.stringify(default_config),{encoding:"utf-8"});
+    process.exit(0);
+}
+
+Object.keys(default_config).forEach(configKey=>{
+    if(config[configKey] === undefined){
+        config[configKey] = default_config[configKey];
+    }
+})
 
 let max_url_length = 128;
 let max_surl_length = 128;
@@ -19,7 +74,7 @@ const limiter = rateLimit({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%1", config.rateLimiter.amount);
+config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%1", String(config.rateLimiter.amount));
 config.localization["loc-rate-limits"] = config.localization["loc-rate-limits"].replace("%2", config.rateLimiter.window/60 + " minutes");
 
 app.use('/shorten', limiter)
