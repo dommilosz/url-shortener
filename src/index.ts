@@ -118,8 +118,10 @@ app.get('/favicon.ico', (req: Request, res: Response) => {
 
 app.get('/:shortUrl', async (req: Request, res: Response) => {
     let params = req.params;
-    let custom = isCustom(params.shortUrl)
-    let ref = realtime_db.ref(`urls/${custom ? "c" : "r"}/${params.shortUrl}`);
+    let custom = isCustom(params.shortUrl);
+	let urlShort = params.shortUrl;
+    urlShort = encodeURIComponent(urlShort);
+    let ref = realtime_db.ref(`urls/${custom ? "c" : "r"}/${urlShort}`);
     let snapshot = await ref.once('value');
     if (snapshot.exists()) {
         let data = snapshot.val();
@@ -153,6 +155,7 @@ async function shorten(url, urlShort, retriesLeft = config.validation.randomRetr
     if (!urlShort) {
         urlShort = 'A' + makeid(config.validation.randomShortUrlLength-1);
     }
+	urlShort = encodeURIComponent(urlShort);
     let validationResult = validateUrlAndSurl(url,urlShort);
     if(validationResult.error){
         return validationResult;
@@ -162,7 +165,7 @@ async function shorten(url, urlShort, retriesLeft = config.validation.randomRetr
     let ref = realtime_db.ref(`urls/${custom ? "c" : "r"}/${urlShort}`);
     let snapshot = await ref.once('value');
     if (snapshot.exists()) {
-        if (custom) {
+        if (!custom) {
             if(retriesLeft < 1){
                 return {text: "Free url not found!", error: true};
             }
