@@ -3,50 +3,24 @@ import {sendCompletion, sendFile, sendText} from 'express-wsutils';
 import {realtime_db} from "./firebase";
 import rateLimit from 'express-rate-limit'
 import fs from 'fs';
+import configured from 'configuredjs';
 
-type configType = {
-    "databaseURL": string,
-    "rateLimiter": {
-        "window": number,
-        "amount": number
-    },
-    "validation":{
-        randomShortUrlLength: number,
-        randomRetries:number,
-        maxUrlLength:number,
-        maxShortUrlLength:number,
-        minShortUrlLength:number
-    },
-    "port": number,
-    "localization": {
-        "loc-name": string,
-        "loc-rate-limits": string,
-        "loc-long-url-box-p": string,
-        "loc-long-surl-box-p": string,
-        "loc-shorten-button": string,
-        "loc-long-surl-out-box-p": string,
-        "loc-404-error": string,
-        "loc-404-h2": string,
-        "loc-404-shorten-first": string
-    }
-}
-
-let default_config: configType = {
+let config = configured({path:'./config.json',writeMissing:true,defaultConfig:{
     validation: {
         maxShortUrlLength: 128,
-        maxUrlLength: 128,
-        minShortUrlLength: 2,
-        randomRetries: 5,
-        randomShortUrlLength: 8
+            maxUrlLength: 128,
+            minShortUrlLength: 2,
+            randomRetries: 5,
+            randomShortUrlLength: 8
     },
     "databaseURL": "https://example.firebaseio.com",
     "rateLimiter": {
-        "window": 300,
+    "window": 300,
         "amount": 30
-    },
+},
     "port": 8008,
     "localization": {
-        "loc-name": "URL Shortener",
+    "loc-name": "URL Shortener",
         "loc-rate-limits": "Rate limits apply: %1 shortens in %2 minutes",
         "loc-long-url-box-p": "Enter long url address",
         "loc-long-surl-box-p": "Leave empty to get random link",
@@ -55,25 +29,7 @@ let default_config: configType = {
         "loc-404-error": "404 Not Found",
         "loc-404-h2": "Nobody have ever shortened this",
         "loc-404-shorten-first": "Be first to shorten!"
-    }
-}
-
-let config: configType = default_config;
-if (fs.existsSync("./config.json")) {
-    config = JSON.parse(fs.readFileSync("./config.json", {encoding: "utf-8"}));
-} else {
-    console.error("config.json not found. Writing example one");
-    fs.writeFileSync("./config.json", JSON.stringify(default_config,null, 2), {encoding: "utf-8"});
-    process.exit(0);
-}
-
-Object.keys(default_config).forEach(configKey => {
-    if (config[configKey] === undefined) {
-        config[configKey] = default_config[configKey];
-    }
-})
-
-fs.writeFileSync("./config.json", JSON.stringify(config,null,2), {encoding: "utf-8"});
+}}})
 
 const app = express()
 const port = config.port
